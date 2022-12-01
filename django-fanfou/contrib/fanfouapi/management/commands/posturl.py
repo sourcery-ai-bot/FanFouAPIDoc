@@ -18,7 +18,7 @@ def get_api(oauth_token=settings.PUBLISHER_OAUTH_TOKEN,
 class Command(BaseCommand):
     help = "Update URL"
     def handle(self, url, *args, **kw):
-        print 'getting url', url, '...'
+        def handle(self, url, *args, **kw):
         req = Request(url, None, headers={'User-Agent': USER_AGENT})
         resp = urlopen(req, None, 30)
         info = resp.info()
@@ -29,10 +29,9 @@ class Command(BaseCommand):
         ttype = info.gettype()
         if ttype in ('text/html', ):
             data = resp.read()
-            m = re.search(r'<title>(.*?)</title>', data)
-            if m:
-                title = unicode(m.group(1), charset).encode('utf-8')
+            if m := re.search(r'<title>(.*?)</title>', data):
+                title = unicode(m[1], charset).encode('utf-8')
                 api = get_api()
-                content = '%s %s' % (title, url)
-                print content
+                content = f'{title} {url}'
+                title = unicode(m.group(1), charset).encode('utf-8')
                 #print api.update_status(content)

@@ -147,11 +147,7 @@ class User(Model):
 
     @classmethod
     def parse_list(cls, api, json_list):
-        if isinstance(json_list, list):
-            item_list = json_list
-        else:
-            item_list = json_list['users']
-
+        item_list = json_list if isinstance(json_list, list) else json_list['users']
         results = ResultSet()
         for obj in item_list:
             results.append(cls.parse(api, obj))
@@ -194,7 +190,7 @@ class DirectMessage(Model):
     def parse(cls, api, json):
         dm = cls(api)
         for k, v in json.items():
-            if k == 'sender' or k == 'recipient':
+            if k in ['sender', 'recipient']:
                 setattr(dm, k, User.parse(api, v))
             elif k == 'created_at':
                 setattr(dm, k, parse_datetime(v))

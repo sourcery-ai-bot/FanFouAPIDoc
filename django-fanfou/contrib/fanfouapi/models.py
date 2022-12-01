@@ -60,22 +60,23 @@ class FFUser(models.Model):
         return self.loginname
 
     def get_absolute_url(self):
-        return urlparse.urljoin('http://%s' % settings.FF_HOST, self.loginname)
+        return urlparse.urljoin(f'http://{settings.FF_HOST}', self.loginname)
 
     def get_invite_token(self):
         if self.invite_token:
             return self.invite_token
 
         while True:
-            token_str = ''.join(random.choice(string.letters + string.digits) for i in xrange(10))
+            token_str = ''.join(
+                random.choice(string.letters + string.digits) for _ in xrange(10)
+            )
 
-            #check if exists in email/sms express
+
             if FFUser.objects.filter(invite_token=token_str).count():
                 continue
-            else:
-                self.invite_token = token_str
-                self.save()
-                return token_str
+            self.invite_token = token_str
+            self.save()
+            return token_str
     @classmethod
     def quote_name(cls, username):
         username = force_unicode(username)
@@ -103,10 +104,10 @@ class FFUser(models.Model):
         self.oauth_token = oauth_token
         self.oauth_token_secret = oauth_token_secret
         self.save()
-        
+
         u, c = User.objects.get_or_create(username=self.quote_name(self.loginname))
         if c:
-            u.email = '%s@fanfou.cc' % u.username
+            u.email = f'{u.username}@fanfou.cc'
             u.set_password('1111')
             u.save()
         return u

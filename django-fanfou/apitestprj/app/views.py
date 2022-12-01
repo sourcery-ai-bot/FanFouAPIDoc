@@ -11,11 +11,10 @@ from django.conf import settings
 def route(request):
     if request.user.is_authenticated():
         return HttpResponseRedirect(reverse('dashboard'))
-    else:
-        site_url = 'http://%s' % settings.FF_HOST
-        return render_to_response('route.html',
-                                  RequestContext(request,
-                                                 locals()))
+    site_url = f'http://{settings.FF_HOST}'
+    return render_to_response('route.html',
+                              RequestContext(request,
+                                             locals()))
 
 def signout(request):
     logout(request)

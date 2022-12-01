@@ -60,7 +60,7 @@ class ModelParser(JSONParser):
             if method.payload_type is None: return
             model = getattr(self.model_factory, method.payload_type)
         except AttributeError:
-            raise WeibopError('No model for this payload type: %s' % method.payload_type)
+            raise WeibopError(f'No model for this payload type: {method.payload_type}')
 
         json = JSONParser.parse(self, method, payload)
         if isinstance(json, tuple):
@@ -72,8 +72,5 @@ class ModelParser(JSONParser):
             result = model.parse_list(method.api, json)
         else:
             result = model.parse(method.api, json)
-        if cursors:
-            return result, cursors
-        else:
-            return result
+        return (result, cursors) if cursors else result
 

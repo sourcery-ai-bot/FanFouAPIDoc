@@ -25,9 +25,8 @@ class API(object):
         self.auth = auth_handler
         self.host = host
         self.source = source
-        if source == None:
-            if auth_handler != None:
-                self.source = self.auth._consumer.key
+        if source is None and auth_handler != None:
+            self.source = self.auth._consumer.key
         self.search_host = search_host
         self.api_root = api_root
         self.search_root = search_root
@@ -190,10 +189,6 @@ class API(object):
             args.append(long)
             allowed_param.append('long')
 
-        if source is not None:
-            pass
-            #args.append(source)
-            #allowed_param.append('source')
         return bind_api(
             path = '/photos/upload.json',
             method = 'POST',
@@ -581,28 +576,28 @@ class API(object):
 
     def create_list(self, *args, **kargs):
         return bind_api(
-            path = '/%s/lists.json' % self.auth.get_username(),
-            method = 'POST',
-            payload_type = 'list',
-            allowed_param = ['name', 'mode', 'description'],
-            require_auth = True
+            path=f'/{self.auth.get_username()}/lists.json',
+            method='POST',
+            payload_type='list',
+            allowed_param=['name', 'mode', 'description'],
+            require_auth=True,
         )(self, *args, **kargs)
 
     def destroy_list(self, slug):
         return bind_api(
-            path = '/%s/lists/%s.json' % (self.auth.get_username(), slug),
-            method = 'DELETE',
-            payload_type = 'list',
-            require_auth = True
+            path=f'/{self.auth.get_username()}/lists/{slug}.json',
+            method='DELETE',
+            payload_type='list',
+            require_auth=True,
         )(self)
 
     def update_list(self, slug, *args, **kargs):
         return bind_api(
-            path = '/%s/lists/%s.json' % (self.auth.get_username(), slug),
-            method = 'POST',
-            payload_type = 'list',
-            allowed_param = ['name', 'mode', 'description'],
-            require_auth = True
+            path=f'/{self.auth.get_username()}/lists/{slug}.json',
+            method='POST',
+            payload_type='list',
+            allowed_param=['name', 'mode', 'description'],
+            require_auth=True,
         )(self, *args, **kargs)
 
     lists = bind_api(
@@ -640,20 +635,20 @@ class API(object):
 
     def add_list_member(self, slug, *args, **kargs):
         return bind_api(
-            path = '/%s/%s/members.json' % (self.auth.get_username(), slug),
-            method = 'POST',
-            payload_type = 'list',
-            allowed_param = ['id'],
-            require_auth = True
+            path=f'/{self.auth.get_username()}/{slug}/members.json',
+            method='POST',
+            payload_type='list',
+            allowed_param=['id'],
+            require_auth=True,
         )(self, *args, **kargs)
 
     def remove_list_member(self, slug, *args, **kargs):
         return bind_api(
-            path = '/%s/%s/members.json' % (self.auth.get_username(), slug),
-            method = 'DELETE',
-            payload_type = 'list',
-            allowed_param = ['id'],
-            require_auth = True
+            path=f'/{self.auth.get_username()}/{slug}/members.json',
+            method='DELETE',
+            payload_type='list',
+            allowed_param=['id'],
+            require_auth=True,
         )(self, *args, **kargs)
 
     list_members = bind_api(
@@ -665,9 +660,9 @@ class API(object):
     def is_list_member(self, owner, slug, user_id):
         try:
             return bind_api(
-                path = '/%s/%s/members/%s.json' % (owner, slug, user_id),
-                payload_type = 'user'
+                path=f'/{owner}/{slug}/members/{user_id}.json', payload_type='user'
             )(self)
+
         except WeibopError:
             return False
 
@@ -696,9 +691,10 @@ class API(object):
     def is_subscribed_list(self, owner, slug, user_id):
         try:
             return bind_api(
-                path = '/%s/%s/subscribers/%s.json' % (owner, slug, user_id),
-                payload_type = 'user'
+                path=f'/{owner}/{slug}/subscribers/{user_id}.json',
+                payload_type='user',
             )(self)
+
         except WeibopError:
             return False
 
@@ -780,13 +776,12 @@ class API(object):
             raise WeibopError('Could not determine file type')
         file_type = file_type[0]
         if file_type not in ['image/gif', 'image/jpeg', 'image/png']:
-            raise WeibopError('Invalid file type for image: %s' % file_type)
-        fp = open(filename, 'rb')
-        content = fp.read()
-        r = API._pack_image_content(filename, content, max_size, source=source,
-                                    status=status, lat=lat, long=long, contentname=contentname,
-                                    file_type=file_type)
-        fp.close()
+            raise WeibopError(f'Invalid file type for image: {file_type}')
+        with open(filename, 'rb') as fp:
+            content = fp.read()
+            r = API._pack_image_content(filename, content, max_size, source=source,
+                                        status=status, lat=lat, long=long, contentname=contentname,
+                                        file_type=file_type)
         return r
         
     @staticmethod
@@ -795,48 +790,76 @@ class API(object):
         BOUNDARY = 'Fanfouff3ePy--'
         body = []
         if status is not None:
-            body.append('--' + BOUNDARY)
-            body.append('Content-Disposition: form-data; name="status"')
-            body.append('Content-Type: text/plain; charset=US-ASCII')
-            body.append('Content-Transfer-Encoding: 8bit')
-            body.append('')
-            body.append(status)
+            body.extend(
+                (
+                    f'--{BOUNDARY}',
+                    'Content-Disposition: form-data; name="status"',
+                    'Content-Type: text/plain; charset=US-ASCII',
+                    'Content-Transfer-Encoding: 8bit',
+                    '',
+                    status,
+                )
+            )
+
         if source is not None:
-            body.append('--' + BOUNDARY)
-            body.append('Content-Disposition: form-data; name="source"')
-            body.append('Content-Type: text/plain; charset=US-ASCII')
-            body.append('Content-Transfer-Encoding: 8bit')
-            body.append('')
-            body.append(source)
+            body.extend(
+                (
+                    f'--{BOUNDARY}',
+                    'Content-Disposition: form-data; name="source"',
+                    'Content-Type: text/plain; charset=US-ASCII',
+                    'Content-Transfer-Encoding: 8bit',
+                    '',
+                    source,
+                )
+            )
+
         if lat is not None:
-            body.append('--' + BOUNDARY)
-            body.append('Content-Disposition: form-data; name="lat"')
-            body.append('Content-Type: text/plain; charset=US-ASCII')
-            body.append('Content-Transfer-Encoding: 8bit')
-            body.append('')
-            body.append(lat)
+            body.extend(
+                (
+                    f'--{BOUNDARY}',
+                    'Content-Disposition: form-data; name="lat"',
+                    'Content-Type: text/plain; charset=US-ASCII',
+                    'Content-Transfer-Encoding: 8bit',
+                    '',
+                    lat,
+                )
+            )
+
         if long is not None:
-            body.append('--' + BOUNDARY)
-            body.append('Content-Disposition: form-data; name="long"')
-            body.append('Content-Type: text/plain; charset=US-ASCII')
-            body.append('Content-Transfer-Encoding: 8bit')
-            body.append('')
-            body.append(long)
-        body.append('--' + BOUNDARY)
-        body.append('Content-Disposition: form-data; name="'+ contentname +'"; filename="%s"' % filename)
-        body.append('Content-Type: %s' % file_type)
-        body.append('Content-Transfer-Encoding: binary')
-        body.append('')
-        body.append(content)
-        body.append('--' + BOUNDARY + '--')
-        body.append('')
-        body.append('--' + BOUNDARY + '--')
-        body.append('')
+            body.extend(
+                (
+                    f'--{BOUNDARY}',
+                    'Content-Disposition: form-data; name="long"',
+                    'Content-Type: text/plain; charset=US-ASCII',
+                    'Content-Transfer-Encoding: 8bit',
+                    '',
+                    long,
+                )
+            )
+
+        body.extend(
+            (
+                f'--{BOUNDARY}',
+                'Content-Disposition: form-data; name="'
+                + contentname
+                + '"; filename="%s"' % filename,
+                f'Content-Type: {file_type}',
+                'Content-Transfer-Encoding: binary',
+                '',
+                content,
+                f'--{BOUNDARY}--',
+                '',
+                f'--{BOUNDARY}--',
+                '',
+            )
+        )
+
         body = '\r\n'.join(body)
         # build headers
         headers = {
-            'Content-Type': 'multipart/form-data; boundary=' + BOUNDARY,
-            'Content-Length': len(body)
+            'Content-Type': f'multipart/form-data; boundary={BOUNDARY}',
+            'Content-Length': len(body),
         }
+
         return headers, body
 

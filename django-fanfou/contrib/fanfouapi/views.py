@@ -22,8 +22,7 @@ def api_auth(request):
 
 def get_user(api, **token_dict):
     ffuser = FFUser.objects.get_or_create_from_api(api)
-    user = ffuser.get_or_create_user(**token_dict)
-    return user
+    return ffuser.get_or_create_user(**token_dict)
 
 def api_authcb(request):
     try:

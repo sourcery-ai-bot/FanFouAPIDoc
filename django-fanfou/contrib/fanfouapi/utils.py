@@ -11,7 +11,7 @@ import re
 def parse_datetime(str):
 
     # We must parse datetime this way to work in python 2.4
-    return datetime(*(time.strptime(str, '%a %b %d %H:%M:%S +0000 %Y')[0:6]))
+    return datetime(*time.strptime(str, '%a %b %d %H:%M:%S +0000 %Y')[:6])
 
 
 def parse_html_value(html):
@@ -29,7 +29,7 @@ def parse_a_href(atag):
 def parse_search_datetime(str):
 
     # python 2.4
-    return datetime(*(time.strptime(str, '%a, %d %b %Y %H:%M:%S +0000')[0:6]))
+    return datetime(*time.strptime(str, '%a, %d %b %Y %H:%M:%S +0000')[:6])
 
 
 def unescape_html(text):

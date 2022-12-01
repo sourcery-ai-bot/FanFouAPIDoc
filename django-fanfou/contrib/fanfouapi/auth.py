@@ -29,10 +29,10 @@ class AuthHandler(object):
 class BasicAuthHandler(AuthHandler):
     def __init__(self, username, password):
         self.username = username
-        self._b64up = base64.b64encode('%s:%s' % (username, password))
+        self._b64up = base64.b64encode(f'{username}:{password}')
 
     def apply_auth(self, url, method, headers, parameters):
-        headers['Authorization'] = 'Basic %s' % self._b64up
+        headers['Authorization'] = f'Basic {self._b64up}'
         
     def get_username(self):
         return self.username
@@ -51,11 +51,7 @@ class OAuthHandler(AuthHandler):
         self.secure = secure
 
     def _get_oauth_url(self, endpoint):
-        if self.secure:
-            prefix = 'https://'
-        else:
-            prefix = 'http://'
-
+        prefix = 'https://' if self.secure else 'http://'
         return prefix + OAUTH_HOST + OAUTH_ROOT + endpoint
 
     def apply_auth(self, url, method, headers, parameters):
@@ -140,8 +136,7 @@ class OAuthHandler(AuthHandler):
     def get_username(self):
         if self.username is None:
             api = API(self)
-            user = api.verify_credentials()
-            if user:
+            if user := api.verify_credentials():
                 self.username = user.screen_name
             else:
                 raise WeibopError("Unable to get username, invalid oauth token!")
@@ -165,15 +160,17 @@ def xauth(username, passwd):
     or 
     None if xauth failed 
     """
-    access_token_url = 'http://' + FF_HOST + '/oauth/access_token'
-    verify_url = 'http://' + API_HOST+ '/account/verify_credentials.xml'
+    access_token_url = f'http://{FF_HOST}/oauth/access_token'
+    verify_url = f'http://{API_HOST}/account/verify_credentials.xml'
 
     consumer = oauth.OAuthConsumer(settings.FF_API_KEY,
                                    settings.FF_API_SECRET)
-    params = {}
-    params["x_auth_username"] = username
-    params["x_auth_password"] = passwd
-    params["x_auth_mode"] = 'client_auth'
+    params = {
+        "x_auth_username": username,
+        "x_auth_password": passwd,
+        "x_auth_mode": 'client_auth',
+    }
+
     request = oauth.OAuthRequest.from_consumer_and_token(consumer,
                                                          http_url=access_token_url,
                                                          parameters=params)
@@ -182,6 +179,7 @@ def xauth(username, passwd):
     headers=xauth_request_to_header(request)
     resp = urlopen(Request(access_token_url, headers=headers))
     token = resp.read()
-    m = re.match(r'oauth_token=(?P<key>.+?)&oauth_token_secret=(?P<secret>.+)', token)
-    if m:
+    if m := re.match(
+        r'oauth_token=(?P<key>.+?)&oauth_token_secret=(?P<secret>.+)', token
+    ):
         return m.groupdict()

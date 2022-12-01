@@ -120,8 +120,8 @@ class ItemIterator(BaseIterator):
             # At the beginning of the current page, move to next...
             self.current_page = self.page_iterator.prev()
             self.page_index = len(self.current_page)
-            if self.page_index == 0:
-                raise WeibopError('No more items')
+        if self.page_index == 0:
+            raise WeibopError('No more items')
         self.page_index -= 1
         self.count -= 1
         return self.current_page[self.page_index]

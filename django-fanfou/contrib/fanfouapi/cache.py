@@ -166,7 +166,7 @@ class FileCache(Cache):
         return
 
     def _lock_file_posix(self, path, exclusive=True):
-        lock_path = path + '.lock'
+        lock_path = f'{path}.lock'
         if exclusive is True:
             f_lock = open(lock_path, 'w')
             fcntl.lockf(f_lock, fcntl.LOCK_EX)
@@ -191,8 +191,8 @@ class FileCache(Cache):
 
     def _delete_file(self, path):
         os.remove(path)
-        if os.path.exists(path + '.lock'):
-            os.remove(path + '.lock')
+        if os.path.exists(f'{path}.lock'):
+            os.remove(f'{path}.lock')
 
     def store(self, key, value):
         path = self._get_path(key)
@@ -200,13 +200,10 @@ class FileCache(Cache):
         try:
             # acquire lock and open file
             f_lock = self._lock_file(path)
-            datafile = open(path, 'wb')
+            with open(path, 'wb') as datafile:
+                # write data
+                pickle.dump((time.time(), value), datafile)
 
-            # write data
-            pickle.dump((time.time(), value), datafile)
-
-            # close and unlock file
-            datafile.close()
             self._unlock_file(f_lock)
         finally:
             self.lock.release()
@@ -222,12 +219,9 @@ class FileCache(Cache):
         try:
             # acquire lock and open
             f_lock = self._lock_file(path, False)
-            datafile = open(path, 'rb')
-
-            # read pickled object
-            created_time, value = pickle.load(datafile)
-            datafile.close()
-
+            with open(path, 'rb') as datafile:
+                # read pickled object
+                created_time, value = pickle.load(datafile)
             # check if value is expired
             if timeout is None:
                 timeout = self.timeout
@@ -243,12 +237,7 @@ class FileCache(Cache):
             self.lock.release()
 
     def count(self):
-        c = 0
-        for entry in os.listdir(self.cache_dir):
-            if entry.endswith('.lock'):
-                continue
-            c += 1
-        return c
+        return sum(not entry.endswith('.lock') for entry in os.listdir(self.cache_dir))
 
     def cleanup(self):
         for entry in os.listdir(self.cache_dir):
